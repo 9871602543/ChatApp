@@ -28,9 +28,9 @@ def send_message():
         try:
             response = supabase.table("chat_messages").insert(data).execute()
             if response.data:
-                st.session_state.messages.append(data)  # Update session state messages
                 st.session_state["message_input"] = ""  # Clear input field
-                st.experimental_rerun()  # Refresh chat UI
+                time.sleep(0.5)  # Short delay to ensure database update
+                st.experimental_rerun()  # Refresh chat UI immediately
         except Exception as e:
             st.error(f"Error sending message: {e}")
 
@@ -39,22 +39,23 @@ def fetch_messages():
     try:
         response = supabase.table("chat_messages").select("*").order("timestamp").execute()
         if response.data:
-            st.session_state.messages = response.data
+            st.session_state.messages = response.data  # Update session state
     except Exception as e:
         st.error(f"Error fetching messages: {e}")
 
-fetch_messages()
+# Auto-refresh chat in real-time
+chat_box = st.empty()  # Create an empty container for chat messages
+while True:
+    fetch_messages()
+    with chat_box.container():  # Render chat dynamically
+        st.subheader("Chat")
+        for msg in st.session_state.messages:
+            if msg["sender"] == username:
+                st.markdown(f"**You:** {msg['message']}")
+            else:
+                st.markdown(f"**{msg['sender']}:** {msg['message']}")
+    time.sleep(1)  # Refresh chat every second
 
-# Chat interface
-st.subheader("Chat")
-for msg in st.session_state.messages:
-    if msg["sender"] == username:
-        st.markdown(f"**You:** {msg['message']}")
-    else:
-        st.markdown(f"**{msg['sender']}:** {msg['message']}")
-
-# Message input
+# Message input and send button
 st.text_input("Type a message", key="message_input")
-
-# Send button with callback function
 st.button("Send", on_click=send_message)

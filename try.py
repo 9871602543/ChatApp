@@ -13,21 +13,12 @@ st.title("Personal Chat App")
 username = st.sidebar.selectbox("Select User", ["Furkan", "Sadqua"])
 st.sidebar.write(f"Logged in as: {username}")
 
-# Initialize session state
+# Initialize session state for messages and input field
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
 if "message_input" not in st.session_state:
     st.session_state["message_input"] = ""
-
-# Function to fetch messages
-def fetch_messages():
-    try:
-        response = supabase.table("chat_messages").select("*").order("timestamp").execute()
-        if response.data:
-            st.session_state.messages = response.data  # Update session state
-    except Exception as e:
-        st.error(f"Error fetching messages: {e}")
 
 # Function to send a message
 def send_message():
@@ -37,19 +28,24 @@ def send_message():
         try:
             response = supabase.table("chat_messages").insert(data).execute()
             if response.data:
+                st.session_state.messages.append(data)  # Update session state messages
                 st.session_state["message_input"] = ""  # Clear input field
-                fetch_messages()  # Fetch updated messages
-                st.experimental_rerun()  # Refresh chat UI after sending a message
+                st.experimental_rerun()  # Refresh chat UI
         except Exception as e:
             st.error(f"Error sending message: {e}")
 
-# Fetch messages initially
+# Function to fetch messages
+def fetch_messages():
+    try:
+        response = supabase.table("chat_messages").select("*").order("timestamp").execute()
+        if response.data:
+            st.session_state.messages = response.data
+    except Exception as e:
+        st.error(f"Error fetching messages: {e}")
+
 fetch_messages()
 
-# Auto-refresh chat every second (without blocking input)
-st.autorefresh(interval=1000, limit=None, key="refresh_chat")
-
-# Display chat messages
+# Chat interface
 st.subheader("Chat")
 for msg in st.session_state.messages:
     if msg["sender"] == username:
@@ -57,6 +53,8 @@ for msg in st.session_state.messages:
     else:
         st.markdown(f"**{msg['sender']}:** {msg['message']}")
 
-# Message input and send button
+# Message input
 st.text_input("Type a message", key="message_input")
+
+# Send button with callback function
 st.button("Send", on_click=send_message)

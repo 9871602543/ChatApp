@@ -30,7 +30,7 @@ def send_message():
             if response.data:
                 st.session_state.messages.append(data)  # Update session state messages
                 st.session_state["message_input"] = ""  # Clear input field
-                st.experimental_rerun()  # Refresh chat UI
+                st.rerun()  # ✅ Fixed: Use st.rerun() instead of st.experimental_rerun()
         except Exception as e:
             st.error(f"Error sending message: {e}")
 
